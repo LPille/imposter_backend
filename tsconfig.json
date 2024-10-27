@@ -2,6 +2,8 @@
   "compilerOptions": {
     "outDir": "./dist",
 
+    "resolveJsonModule": true, // Enable JSON module resolution
+
     /* Visit https://aka.ms/tsconfig to read more about this file */
 
     /* Projects */
