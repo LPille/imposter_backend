@@ -6,12 +6,11 @@ import { IPlayer } from "./models/Room";
 // Define a function to initialize WebSocket events
 export function initSocketHandlers(io: Server) {
   io.on("connection", (socket: Socket) => {
-    console.log("New user connected:", socket.id);
+    console.log("SE New user connected:", socket.id);
 
     // CREATE_ROOM Event
     socket.on("CREATE_ROOM", async (data, callback) => {
       const { roomId, userId } = data;
-      console.log("CREATE_ROOM: ", data);
 
       const user = await User.findOne({ userId });
       if (user) {
@@ -30,9 +29,8 @@ export function initSocketHandlers(io: Server) {
 
         await newRoom.save();
         socket.join(roomId);
-        console.log("1. Room updated", newRoom);
-
-        io.to(roomId).emit("ROOM_UPDATED", newRoom);
+        socket.emit("ROOM_CREATED", newRoom);
+        io.emit("ROOM_UPDATE", newRoom);
         if (typeof callback === "function") callback({ roomId });
       } else {
         if (typeof callback === "function")
@@ -63,8 +61,8 @@ export function initSocketHandlers(io: Server) {
         }
 
         socket.join(roomId);
-        console.log("2. Room updated", room);
-        io.to(roomId).emit("ROOM_UPDATED", room);
+        socket.emit("ROOM_JOINED", room);
+        io.to(roomId).emit("ROOM_UPDATE", room);
         if (typeof callback === "function") callback({ success: true });
       } else {
         if (typeof callback === "function")
@@ -73,7 +71,7 @@ export function initSocketHandlers(io: Server) {
     });
 
     // LEAVE_ROOM Event
-    socket.on("LEAVE_ROOM", async (data, callback) => {
+    /*     socket.on("LEAVE_ROOM", async (data, callback) => {
       const { roomId, userId } = data;
       const room = await Room.findOne({ roomId });
 
@@ -83,14 +81,52 @@ export function initSocketHandlers(io: Server) {
         );
         await room.save();
         socket.leave(roomId);
-        console.log("3. Room updated", room);
-        io.to(roomId).emit("ROOM_UPDATED", room);
+        console.log("SE LEAVE_ROOM", roomId);
+        io.to(roomId).emit("ROOM_UPDATE", room);
 
         // Remove room if empty
         if (room.players.length === 0) {
           await Room.deleteOne({ roomId });
         }
 
+        if (typeof callback === "function") callback({ success: true });
+      } else {
+        if (typeof callback === "function")
+          callback({ success: false, message: "Room not found" });
+      }
+    }); */
+
+    //Logout Room and remove room when there is no player and remove the player
+    socket.on("LOGOUT_ROOM", async (data, callback) => {
+      const { roomId, userId } = data;
+      const room = await Room.findOne({ roomId });
+      if (room) {
+        room.players = room.players.filter(
+          (player) => player.userId !== userId
+        );
+        await room.save();
+
+        //socket.emit("ROOM_UPDA", room);
+        if (room.players.length === 0) {
+          console.log("REMOVE ROOM");
+          await Room.deleteOne({ roomId });
+        }
+        io.to(roomId).emit("ROOM_UPDATE", room);
+        io.emit("ROOM_UPDATE", room);
+
+        socket.leave(roomId);
+        if (typeof callback === "function") callback({ success: true });
+      }
+    });
+
+    socket.on("DELETE_ROOM", async (data, callback) => {
+      const { roomId } = data;
+      const room = await Room.findOne({ roomId });
+      if (room) {
+        await Room.deleteOne({ roomId });
+        socket.emit("ROOM_DELETED", room.roomId);
+        io.emit("ROOM_UPDATE", room);
+        console.log("Event DELETE_ROOM", roomId);
         if (typeof callback === "function") callback({ success: true });
       } else {
         if (typeof callback === "function")
@@ -106,7 +142,6 @@ export function initSocketHandlers(io: Server) {
       if (room) {
         room.gameRunning = true;
         await room.save();
-
         io.to(roomId).emit("GAME_STARTED", room);
         if (typeof callback === "function") callback({ success: true });
       } else {

@@ -32,7 +32,7 @@ app.use("/api", roomRoutes);
 app.use("/api", userRoutes);
 
 app.get("/", (req: Request, res: Response) => {
-  res.send("Office Bites Server");
+  res.send("Imposter Server");
 });
 
 initSocketHandlers(io);

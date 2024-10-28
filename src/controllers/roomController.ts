@@ -47,10 +47,7 @@ export const joinRoom = async (req: Request, res: Response) => {
 
 // Get room details
 export const getRoom = async (req: Request, res: Response) => {
-  console.log("req", req);
-
   const { roomId } = req.params;
-  console.log("roomId", roomId);
   try {
     const room = await Room.findOne({ roomId });
     if (!room) return res.status(404).json({ message: "Room not found" });
@@ -68,3 +65,7 @@ export const getAllRooms = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Error fetching rooms", error });
   }
 };
+/* 
+export const logOutFromRoom = async (req: Request, res: Response) => {
+  const { roomId, userId } = req.body;
+}; */
