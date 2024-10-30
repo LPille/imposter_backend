@@ -21,6 +21,7 @@ export interface IGame extends Document {
   gameRunning: boolean;
   admin: IPlayer;
   word?: string;
+  imposter?: string[];
 }
 
 const GameSchema: Schema = new Schema({
@@ -29,6 +30,7 @@ const GameSchema: Schema = new Schema({
   gameRunning: { type: Boolean, default: false },
   admin: PlayerSchema,
   word: { type: String },
+  imposter: [{ type: String }],
 });
 
 export const Game = mongoose.model<IGame>("Game", GameSchema);

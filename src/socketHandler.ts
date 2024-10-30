@@ -2,7 +2,7 @@ import { Server, Socket } from "socket.io";
 import { Game } from "./models/Game";
 import { User } from "./models/User";
 import { IPlayer } from "./models/Game";
-
+import words from "../data/words.json";
 // Define a function to initialize WebSocket events
 export function initSocketHandlers(io: Server) {
   io.on("connection", (socket: Socket) => {
@@ -116,8 +116,84 @@ export function initSocketHandlers(io: Server) {
 
       if (game) {
         game.gameRunning = true;
+        const randomWord = words[Math.floor(Math.random() * words.length)];
+        console.log("Random Word: ", randomWord);
+        game.word = randomWord;
+
         await game.save();
         io.to(gameId).emit("GAME_STARTED", game);
+        // io.to(gameId).emit("GAME_UPDATE", game);
+
+        io.emit("GAME_UPDATE", game);
+
+        if (typeof callback === "function") callback({ success: true });
+      } else {
+        if (typeof callback === "function")
+          callback({ success: false, message: "Game not found" });
+      }
+    });
+
+    socket.on("STOP_GAME", async (data, callback) => {
+      const { gameId } = data;
+      const game = await Game.findOne({ gameId });
+      console.log("STOP_GAME", gameId);
+      if (game) {
+        game.gameRunning = false;
+
+        await game.save();
+        //io.to(gameId).emit("GAME_STOPPED", game);
+
+        // to the specific user
+        //  socket.emit("GAME_STOPPED", game);
+
+        // To the Room
+        //  io.to(gameId).emit("GAME_UPDATE", game);
+        // Do Everybody
+
+        io.to(gameId).emit("GAME_STOPPED", game);
+        //  io.emit("GAME_STOPPED", game);
+
+        io.emit("GAME_UPDATE", game);
+
+        if (typeof callback === "function") callback({ success: true });
+      } else {
+        if (typeof callback === "function")
+          callback({ success: false, message: "Game not found" });
+      }
+    });
+
+    socket.on("NEXT_ROUND", async (data, callback) => {
+      const { gameId } = data;
+      const game = await Game.findOne({ gameId });
+
+      if (game) {
+        // set random player as imposter
+        /*         const players = game.players;
+        players.forEach((player) => {
+          player.isImposter = false;
+        });
+
+        */
+        console.log("game: ", game);
+
+        let imposters = [];
+        const randomIndex = Math.floor(Math.random() * game.players.length);
+        imposters.push(game.players[randomIndex].userId);
+        console.log("randomIndex: ", randomIndex);
+        console.log("imposter: ", imposters);
+
+        game.imposter = imposters;
+
+        const randomWord = words[Math.floor(Math.random() * words.length)];
+        console.log("Next Round Random Word: ", randomWord);
+        game.word = randomWord;
+
+        await game.save();
+        //io.to(gameId).emit("GAME_UPDATE", game);
+        io.emit("ON_NEXT_ROUND", game);
+
+        // io.to(gameId).emit("ON_NEXT_ROUND", game);
+
         if (typeof callback === "function") callback({ success: true });
       } else {
         if (typeof callback === "function")
