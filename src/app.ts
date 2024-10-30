@@ -2,7 +2,7 @@ import express, { Express, Request, Response } from "express";
 import http from "http";
 import { Server } from "socket.io";
 import cors from "cors";
-import roomRoutes from "./routes/roomRoutes";
+import gameRoutes from "./routes/gameRoutes";
 import userRoutes from "./routes/userRoutes";
 import dotenv from "dotenv";
 import databaseConnection from "./setupDatabase";
@@ -28,7 +28,7 @@ databaseConnection();
 const port = process.env.PORT;
 
 app.use(express.json());
-app.use("/api", roomRoutes);
+app.use("/api", gameRoutes);
 app.use("/api", userRoutes);
 
 app.get("/", (req: Request, res: Response) => {

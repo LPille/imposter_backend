@@ -1,16 +1,16 @@
 import { Server, Socket } from "socket.io";
-import { Room } from "./models/Room";
+import { Game } from "./models/Game";
 import { User } from "./models/User";
-import { IPlayer } from "./models/Room";
+import { IPlayer } from "./models/Game";
 
 // Define a function to initialize WebSocket events
 export function initSocketHandlers(io: Server) {
   io.on("connection", (socket: Socket) => {
-    console.log("SE New user connected:", socket.id);
+    console.log("Socket new connection: ", socket.id);
 
-    // CREATE_ROOM Event
-    socket.on("CREATE_ROOM", async (data, callback) => {
-      const { roomId, userId } = data;
+    // CREATE_GAME Event
+    socket.on("CREATE_GAME", async (data, callback) => {
+      const { gameId, userId } = data;
 
       const user = await User.findOne({ userId });
       if (user) {
@@ -21,31 +21,33 @@ export function initSocketHandlers(io: Server) {
           isInGame: false,
         };
 
-        const newRoom = new Room({
-          roomId,
+        const newGame = new Game({
+          gameId,
           players: [newPlayer],
           gameRunning: false,
+          word: "",
+          admin: newPlayer,
         });
 
-        await newRoom.save();
-        socket.join(roomId);
-        socket.emit("ROOM_CREATED", newRoom);
-        io.emit("ROOM_UPDATE", newRoom);
-        if (typeof callback === "function") callback({ roomId });
+        await newGame.save();
+        socket.join(gameId);
+        socket.emit("GAME_CREATED", newGame);
+        io.emit("GAME_UPDATE", newGame);
+        if (typeof callback === "function") callback({ gameId });
       } else {
         if (typeof callback === "function")
           callback({ success: false, message: "User not found" });
       }
     });
 
-    // JOIN_ROOM Event
-    socket.on("JOIN_ROOM", async (data, callback) => {
-      const { roomId, userId } = data;
-      const room = await Room.findOne({ roomId });
+    // JOIN_GAME Event
+    socket.on("JOIN_GAME", async (data, callback) => {
+      const { gameId, userId } = data;
+      const game = await Game.findOne({ gameId });
       const user = await User.findOne({ userId }).lean();
 
-      if (room && user) {
-        const existingPlayer = room.players.find(
+      if (game && user) {
+        const existingPlayer = game.players.find(
           (player) => player.userId === user.userId
         );
 
@@ -56,102 +58,75 @@ export function initSocketHandlers(io: Server) {
             isImposter: false,
             isInGame: true,
           };
-          room.players.push(newPlayer as IPlayer);
-          await room.save();
+          game.players.push(newPlayer as IPlayer);
+          await game.save();
         }
 
-        socket.join(roomId);
-        socket.emit("ROOM_JOINED", room);
-        io.to(roomId).emit("ROOM_UPDATE", room);
+        socket.join(gameId);
+        socket.emit("GAME_JOINED", game);
+        io.to(gameId).emit("GAME_UPDATE", game);
         if (typeof callback === "function") callback({ success: true });
       } else {
         if (typeof callback === "function")
-          callback({ success: false, message: "Room or User not found" });
+          callback({ success: false, message: "Game or User not found" });
       }
     });
 
-    // LEAVE_ROOM Event
-    /*     socket.on("LEAVE_ROOM", async (data, callback) => {
-      const { roomId, userId } = data;
-      const room = await Room.findOne({ roomId });
-
-      if (room) {
-        room.players = room.players.filter(
+    //Logout Game and remove game when there is no player and remove the player
+    socket.on("LOGOUT_GAME", async (data, callback) => {
+      const { gameId: gameId, userId } = data;
+      const game = await Game.findOne({ gameId: gameId });
+      if (game) {
+        game.players = game.players.filter(
           (player) => player.userId !== userId
         );
-        await room.save();
-        socket.leave(roomId);
-        console.log("SE LEAVE_ROOM", roomId);
-        io.to(roomId).emit("ROOM_UPDATE", room);
-
-        // Remove room if empty
-        if (room.players.length === 0) {
-          await Room.deleteOne({ roomId });
-        }
-
-        if (typeof callback === "function") callback({ success: true });
-      } else {
-        if (typeof callback === "function")
-          callback({ success: false, message: "Room not found" });
-      }
-    }); */
-
-    //Logout Room and remove room when there is no player and remove the player
-    socket.on("LOGOUT_ROOM", async (data, callback) => {
-      const { roomId, userId } = data;
-      const room = await Room.findOne({ roomId });
-      if (room) {
-        room.players = room.players.filter(
-          (player) => player.userId !== userId
-        );
-        await room.save();
+        await game.save();
 
         //socket.emit("ROOM_UPDA", room);
-        if (room.players.length === 0) {
-          console.log("REMOVE ROOM");
-          await Room.deleteOne({ roomId });
+        if (game.players.length === 0) {
+          console.log("Socket remove game after Logout ");
+          await Game.deleteOne({ gameId: gameId });
         }
-        io.to(roomId).emit("ROOM_UPDATE", room);
-        io.emit("ROOM_UPDATE", room);
+        io.to(gameId).emit("GAME_UPDATE", game);
+        io.emit("GAME_UPDATE", game);
 
-        socket.leave(roomId);
+        socket.leave(gameId);
         if (typeof callback === "function") callback({ success: true });
       }
     });
 
-    socket.on("DELETE_ROOM", async (data, callback) => {
-      const { roomId } = data;
-      const room = await Room.findOne({ roomId });
-      if (room) {
-        await Room.deleteOne({ roomId });
-        socket.emit("ROOM_DELETED", room.roomId);
-        io.emit("ROOM_UPDATE", room);
-        console.log("Event DELETE_ROOM", roomId);
+    socket.on("DELETE_GAME", async (data, callback) => {
+      const { gameId } = data;
+      const game = await Game.findOne({ gameId });
+      if (game) {
+        await Game.deleteOne({ gameId });
+        socket.emit("GAME_DELETED", game.gameId);
+        io.emit("GAME_UPDATE", game);
         if (typeof callback === "function") callback({ success: true });
       } else {
         if (typeof callback === "function")
-          callback({ success: false, message: "Room not found" });
+          callback({ success: false, message: "Game not found" });
       }
     });
 
     // START_GAME Event
     socket.on("START_GAME", async (data, callback) => {
-      const { roomId } = data;
-      const room = await Room.findOne({ roomId });
+      const { gameId } = data;
+      const game = await Game.findOne({ gameId });
 
-      if (room) {
-        room.gameRunning = true;
-        await room.save();
-        io.to(roomId).emit("GAME_STARTED", room);
+      if (game) {
+        game.gameRunning = true;
+        await game.save();
+        io.to(gameId).emit("GAME_STARTED", game);
         if (typeof callback === "function") callback({ success: true });
       } else {
         if (typeof callback === "function")
-          callback({ success: false, message: "Room not found" });
+          callback({ success: false, message: "Game not found" });
       }
     });
 
     socket.on("disconnect", () => {
-      console.log("User disconnected:", socket.id);
+      console.log("Socket User disconnected:", socket.id);
     });
   });
 }

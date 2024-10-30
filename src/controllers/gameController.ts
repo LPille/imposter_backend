@@ -1,10 +1,10 @@
 import { Request, Response } from "express";
-import { Room } from "../models/Room";
+import { Game } from "../models/Game";
 import { User } from "../models/User";
 import { v4 as uuidv4 } from "uuid";
 
-// Create a new Room
-export const createRoom = async (req: Request, res: Response) => {
+// Create a new Game
+export const createGame = async (req: Request, res: Response) => {
   /*   const { userId } = req.body;
 
   try {
@@ -25,7 +25,7 @@ export const createRoom = async (req: Request, res: Response) => {
 };
 
 // Join an existing room
-export const joinRoom = async (req: Request, res: Response) => {
+export const joinGame = async (req: Request, res: Response) => {
   /*   const { roomId, userId } = req.body;
 
   try {
@@ -45,24 +45,24 @@ export const joinRoom = async (req: Request, res: Response) => {
   } */
 };
 
-// Get room details
-export const getRoom = async (req: Request, res: Response) => {
-  const { roomId } = req.params;
+// Get game details
+export const getGame = async (req: Request, res: Response) => {
+  const { gameId } = req.params;
   try {
-    const room = await Room.findOne({ roomId });
-    if (!room) return res.status(404).json({ message: "Room not found" });
-    res.status(200).json(room);
+    const game = await Game.findOne({ gameId });
+    if (!game) return res.status(404).json({ message: "Game not found" });
+    res.status(200).json(game);
   } catch (error) {
-    res.status(500).json({ message: "Error fetching room details", error });
+    res.status(500).json({ message: "Error fetching game details", error });
   }
 };
 
-export const getAllRooms = async (req: Request, res: Response) => {
+export const getAllGames = async (req: Request, res: Response) => {
   try {
-    const rooms = await Room.find();
-    res.status(200).json(rooms);
+    const games = await Game.find();
+    res.status(200).json(games);
   } catch (error) {
-    res.status(500).json({ message: "Error fetching rooms", error });
+    res.status(500).json({ message: "Error fetching games", error });
   }
 };
 /* 

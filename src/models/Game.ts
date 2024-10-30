@@ -15,16 +15,20 @@ const PlayerSchema: Schema = new Schema({
 
 export const Player = mongoose.model<IPlayer>("Player", PlayerSchema);
 
-export interface IRoom extends Document {
-  roomId: string;
+export interface IGame extends Document {
+  gameId: string;
   players: IPlayer[];
   gameRunning: boolean;
+  admin: IPlayer;
+  word?: string;
 }
 
-const RoomSchema: Schema = new Schema({
-  roomId: { type: String, required: true, unique: true },
+const GameSchema: Schema = new Schema({
+  gameId: { type: String, required: true, unique: true },
   players: [PlayerSchema],
   gameRunning: { type: Boolean, default: false },
+  admin: PlayerSchema,
+  word: { type: String },
 });
 
-export const Room = mongoose.model<IRoom>("Room", RoomSchema);
+export const Game = mongoose.model<IGame>("Game", GameSchema);

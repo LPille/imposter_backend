@@ -3,9 +3,7 @@ import { User } from "../models/User";
 
 export const createUser = async (req: Request, res: Response) => {
   const { name, userId } = req.body;
-  //console.log("Create User ", userId);
-  console.log("=== createUser", userId);
-
+  console.log("Create User: ", userId);
   try {
     const existingUser = await User.findOne({ userId });
     if (existingUser) {
@@ -22,7 +20,7 @@ export const createUser = async (req: Request, res: Response) => {
 
 export const getUserById = async (req: Request, res: Response) => {
   const { userId } = req.params;
-  console.log("=== get user by id ", userId);
+  console.log("Get User by ID: ", userId);
   try {
     const user = await User.findOne({ userId });
     if (!user) return res.status(404).json({ message: "User not found" });
@@ -34,7 +32,7 @@ export const getUserById = async (req: Request, res: Response) => {
 
 export const deleteUserById = async (req: Request, res: Response) => {
   const { userId } = req.params;
-  console.log("Delete User by Id", userId);
+  console.log("Delete User by ID: ", userId);
   try {
     const user = await User.findOneAndDelete({ userId });
     if (!user) return res.status(404).json({ message: "User not found" });
